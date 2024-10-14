@@ -34,7 +34,7 @@ def private_key_to_wif(private_key):
     return wif.decode()
 
 # Generate a new private/public key pair and save in CSV
-def generate_bitcoin_keypair(num_keys=-1, output_csv='bitcoin_keys.csv'):
+def generate_bitcoin_keypair(num_keys=-1, delay_ms=1000, output_csv='bitcoin_keys.csv'):
     # Check if file exists to avoid rewriting headers
     file_exists = os.path.isfile(output_csv)
 
@@ -46,25 +46,36 @@ def generate_bitcoin_keypair(num_keys=-1, output_csv='bitcoin_keys.csv'):
             writer.writerow(['Private Key (hex)', 'Private Key (WIF)', 'Public Key', 'Bitcoin Address'])
 
         count = 0
-        while num_keys == -1 or count < num_keys:
-            private_key = generate_private_key()
-            public_key = get_public_key(private_key)
-            address = public_key_to_address(public_key)
-            wif = private_key_to_wif(private_key)
+        try:
+            while num_keys == -1 or count < num_keys:
+                private_key = generate_private_key()
+                public_key = get_public_key(private_key)
+                address = public_key_to_address(public_key)
+                wif = private_key_to_wif(private_key)
 
-            # Show the entire Bitcoin address in the console
-            print(f"Address: {address}")
+                # Show the entire Bitcoin address in the console
+                print(f"Address: {address}")
 
-            # Save full details to CSV
-            writer.writerow([private_key.hex(), wif, public_key.hex(), address])
+                # Save full details to CSV
+                writer.writerow([private_key.hex(), wif, public_key.hex(), address])
 
-            count += 1
-            if num_keys == -1:
-                time.sleep(1)  # Delay to slow down generation for indefinite runs
+                count += 1
+                if num_keys == -1:
+                    time.sleep(delay_ms / 1000.0)  # Delay in seconds (converted from milliseconds)
+
+        except KeyboardInterrupt:
+            print("\nProcess interrupted by user. Exiting gracefully...")
+            return
 
 # Command-line interface for the script
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate Bitcoin keypairs")
+    parser.add_argument('-m', '--max', type=int, default=-1, help="Number of Bitcoin keypairs to generate. Use -1 for indefinite generation.")
+    parser.add_argument('-t', '--time', type=int, default=1000, help="Milliseconds between generated addresses when generating indefinitely.")
+
+    args = parser.parse_args()
+    generate_bitcoin_keypair(num_keys=args.max, delay_ms=args.time)
+
     parser.add_argument('-m', '--max', type=int, default=-1, help="Number of Bitcoin keypairs to generate. Use -1 for indefinite generation.")
 
     args = parser.parse_args()
